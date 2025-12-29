@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using YouTubeApi;
+using WinYTM.View;
 
 namespace WinYTM.Classes
 {
@@ -14,7 +16,7 @@ namespace WinYTM.Classes
     {
         public required string Url { get; set; }
         public required string Title { get; set; }
-        public required YoutubeExplode.Videos.Video Media { get; set; }
+        public required YouTube.Video Media { get; set; }
     }
 
     public class SongCard : Wpf.Ui.Controls.Button
@@ -25,7 +27,6 @@ namespace WinYTM.Classes
             Song = song;
             var Grid = new Grid()
             {
-                HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment  = VerticalAlignment.Stretch,
                 Background = new SolidColorBrush(Colors.Transparent),
 
@@ -47,16 +48,19 @@ namespace WinYTM.Classes
             this.SetResourceReference(Wpf.Ui.Controls.Button.BorderBrushProperty, "ControlStrokeColorDefaultBrush");
             this.Padding = new Thickness(0);
             this.Content = Grid;
+            this.Click += SongCard_Click;
+            this.MouseDoubleClick += SongCard_MouseDoubleClick;
 
             var thumbnailBitmap = new BitmapImage();
             thumbnailBitmap.BeginInit();
-            thumbnailBitmap.UriSource = new Uri(song.Media.Thumbnails[0].Url);
+            thumbnailBitmap.UriSource = new Uri(song.Media.Thumbnails.LowResUrl!);
             thumbnailBitmap.EndInit();
 
             var thumbnailImage = new Wpf.Ui.Controls.Image()
             {
                 Source = thumbnailBitmap,
                 HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
                 Width = this.Height - 8,
                 Height = this.Height - 8,
                 Background = new SolidColorBrush(Colors.Transparent),
@@ -80,9 +84,10 @@ namespace WinYTM.Classes
             titleText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
             Grid.SetRow(titleText, 0);
 
+            var artist = song.Media.Author.Split("•");
             var artistText = new TextBlock()
             {
-                Text = song.Media.Author.ChannelTitle,
+                Text = artist[0],
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Margin = new Thickness(8, 0, 8, 4),
@@ -109,12 +114,33 @@ namespace WinYTM.Classes
                 Text = duration,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 4, 0),
             };
+            durationText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
             Grid.SetColumn(durationText, 2);
 
             Grid.Children.Add(thumbnailImage);
             Grid.Children.Add(textStack);
             Grid.Children.Add(durationText);
+        }
+
+        private void SongCard_Click(object sender, RoutedEventArgs e)
+        {
+            if (Application.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.PauseSong();
+                _ = mainWin.SetSong(this.Song);
+            }
+        }
+
+        private void SongCard_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (Application.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.PauseSong();
+                _ = mainWin.SetSong(this.Song);
+                mainWin.NavView.Navigate(typeof(FullSongPage));
+            }
         }
     }
 }

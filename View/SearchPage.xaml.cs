@@ -1,6 +1,7 @@
 ﻿using AngleSharp.Html.Dom;
 using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using WinYTM.Classes;
@@ -11,40 +12,53 @@ namespace WinYTM.View
 {
     public partial class SearchPage : Page
     {
-        private IAsyncEnumerable<YoutubeExplode.Search.VideoSearchResult>? SearchResults => (Application.Current.MainWindow as MainWindow)?.SearchResults;
-        private YoutubeExplode.YoutubeClient _youtube => (Application.Current.MainWindow as MainWindow)?._youtube!;
-        private CancellationTokenSource _searchCTS => (Application.Current.MainWindow as MainWindow)?._searchCTS!;
-        private Wpf.Ui.Controls.TextBox searchBox => (Application.Current.MainWindow as MainWindow)?.SearchBox!;
+        private YouTube.PaginatedResults SearchResults => (Application.Current.MainWindow as MainWindow)!.SearchResults!;
+        private CancellationTokenSource _searchCTS => (Application.Current.MainWindow as MainWindow)!._searchCTS!;
+
         public SearchPage()
         {
             InitializeComponent();
-            searchBox.TextChanged += SearchBox_TextChanged;
+            
+            var mainWin = Application.Current.MainWindow as MainWindow;
+            mainWin!.OnSearchCompleted += MainWin_OnSearchCompleted;
+            mainWin!.OnSearchCleared += SearchPage_OnSearchCleared;
+
+            _ = AddSearchResults(Results, _searchCTS.Token);
         }
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void SearchPage_OnSearchCleared(CancellationToken obj)
+        {
+            Results.Children.Clear();
+        }
+
+        private void MainWin_OnSearchCompleted(CancellationToken obj)
         {
             _ = AddSearchResults(Results, _searchCTS.Token);
         }
 
-        private async Task AddSearchResults(System.Windows.Controls.StackPanel container, CancellationToken token)
+        private async Task AddSearchResults(StackPanel container, CancellationToken token)
         {
             Dispatcher.Invoke(() => { container.Children.Clear(); });
 
-            if (SearchResults != null)
+            if (SearchResults == null) { return; }
+
+            foreach (var result in SearchResults.CurrentPage.ContentItems)
             {
-                await foreach (var result in SearchResults)
+                token.ThrowIfCancellationRequested();
+
+                if (result.Content is YouTube.Video music)
                 {
-                    token.ThrowIfCancellationRequested();
-
-                    var media = await _youtube.Videos.GetAsync(result.Url);
-                    var song = new Song() { Url = result.Url, Title = result.Title, Media = media };
+                    var song = new Song() { Title = music.Title, Url = music.Url, Media = music };
 
                     token.ThrowIfCancellationRequested();
 
-                    Dispatcher.Invoke(() =>
+                    if (!token.IsCancellationRequested)
                     {
-                        container.Children.Add(new SongCard(song));
-                    });
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            container.Children.Add(new SongCard(song));
+                        });
+                    }
                 }
             }
         }
