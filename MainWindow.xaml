@@ -23,17 +23,29 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <ui:Button Name="NavigationBackButton" Grid.Column="0" Margin="4" Icon="{ui:SymbolIcon Symbol=ArrowLeft28}" Click="NavigationBackButton_Click"
                 Background="Transparent" BorderThickness="0" Width="38" Height="38" IsHitTestVisible="False" Foreground="Gray"/>
-            <ui:TitleBar Grid.Column="1" Grid.Row="0" Name="TitleBar" Title="WinYTM" CloseWindowByDoubleClickOnIcon="True">
+            <ui:TitleBar Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Name="TitleBar" Title="WinYTM" CloseWindowByDoubleClickOnIcon="True">
                 <ui:TitleBar.Icon>
                     <ui:ImageIcon Source="/assets/logos/Logo.png"/>
                 </ui:TitleBar.Icon>
-            </ui:TitleBar>
-            
-        </Grid>
 
+                <ui:TitleBar.Header>
+                    <Grid Width="{Binding ElementName=TitleBar, Path=ActualWidth}" Margin="-40,0,0,0">
+
+                        <ui:TextBox Name="SearchBox" 
+                        Width="350"
+                        HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                        PlaceholderText="Search for songs..."
+                        TextChanged="SearchBox_TextChanged" />
+                    </Grid>
+                </ui:TitleBar.Header>
+            </ui:TitleBar>
+        </Grid>
 
         <ui:NavigationView Name="NavView" Grid.Row="1" 
                            IsPaneOpen="False" 
@@ -43,7 +55,6 @@
                            IsTopSeparatorVisible="False">
 
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Search28}" TargetPageType="{x:Type view:SearchPage}"/>
                 <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Play28}" TargetPageType="{x:Type view:FullSongPage}"/>
                 <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=List28}"/>
             </ui:NavigationView.MenuItems>

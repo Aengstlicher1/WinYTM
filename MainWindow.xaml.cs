@@ -1,9 +1,15 @@
-﻿using System.DirectoryServices.ActiveDirectory;
+﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
+using System.DirectoryServices.ActiveDirectory;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using WinYTM.Classes;
 using Wpf.Ui.Controls;
+using YouTubeApi;
+using YoutubeExplode;
+using YoutubeExplode.Search;
 
 namespace WinYTM
 {
@@ -12,6 +18,8 @@ namespace WinYTM
         public NavigationView navView => NavView;
         public MediaElement mediaPlayer => MediaPlayer;
         public bool isMediaPlaying { get; set; }
+        public IAsyncEnumerable<YoutubeExplode.Search.VideoSearchResult>? SearchResults { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -70,6 +78,27 @@ namespace WinYTM
         private void NavigationBackButton_Click(object sender, RoutedEventArgs e)
         {
             if (NavView.CanGoBack) { NavView.GoBack(); }
+        }
+
+        public CancellationTokenSource _searchCTS = new CancellationTokenSource();
+
+        public YoutubeClient _youtube = new();
+
+        private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _searchCTS.Cancel();
+            _searchCTS.Dispose();
+            _searchCTS = new CancellationTokenSource();
+
+            string searchQuery = SearchBox.Text;
+            if (string.IsNullOrWhiteSpace(searchQuery))
+            {
+                SearchResults = null;
+                return;
+            }
+            
+            NavView.NavigateWithHierarchy(typeof(View.SearchPage));
+            SearchResults = _youtube.Search.GetVideosAsync(searchQuery, _searchCTS.Token);
         }
     }
 }
