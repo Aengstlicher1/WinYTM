@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="assets\logos\Logo.png" />
+    <None Remove="assets\logos\Logo_withBg.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibVLCSharp" Version="3.9.5" />
+    <PackageReference Include="WPF-UI" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.Tray" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
+    <PackageReference Include="YouTubeApi" Version="2.0.0" />
+    <PackageReference Include="YoutubeExplode" Version="6.5.6" />
+    <PackageReference Include="YoutubeExplode.Converter" Version="6.5.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="assets\logos\Logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="assets\logos\Logo_withBg.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>
