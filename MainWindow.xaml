@@ -7,86 +7,120 @@
         xmlns:local="clr-namespace:WinYTM"
         xmlns:view="clr-namespace:WinYTM.View"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
+        Title="MainWindow" Height="450" Width="800" MinWidth="550"
         WindowStyle="None" ExtendsContentIntoTitleBar="True"
-        WindowBackdropType="Mica">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        WindowBackdropType="Mica" Icon="/assets/logos/Logo.png">
+    <Grid Name="RootGrid">
+        <Grid Name="DebugGrid" Panel.ZIndex="5" Visibility="Collapsed" IsHitTestVisible="False" >
+            <Border Background="#4F000000" CornerRadius="6" Margin="64, 48" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <ui:StackPanel HorizontalAlignment="Left">
+                    <TextBlock Name="DebugTitle" Text="Debug Menu:" FontSize="20" Margin="0, 4"/>
+                
+                    <TextBlock Text="MediaPlayer:" FontSize="16" Margin="0, 4"/>
+                    <StackPanel Tag="DebugPlayer" Margin="8, 4, 0, 4">
+                        <TextBlock Name="DebugPlayerVolume" Foreground="Yellow" FontSize="16" Margin="0, 4"/>
+                        <TextBlock Name="DebugPlayerPosition" Foreground="Yellow" FontSize="16" Margin="0, 4"/>
+                        <TextBlock Name="DebugPlayerDuration" Foreground="Yellow" FontSize="16" Margin="0, 4"/>
+                    </StackPanel>
 
-        <MediaElement Name="MediaPlayer" LoadedBehavior="Manual" Visibility="Collapsed"/>
-
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <ui:Button Name="NavigationBackButton" Grid.Column="0" Margin="4" Icon="{ui:SymbolIcon Symbol=ArrowLeft28}" Click="NavigationBackButton_Click"
-                Background="Transparent" BorderThickness="0" Width="38" Height="38" IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorDisabledBrush}"/>
-            <ui:TitleBar Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Name="TitleBar" Title="WinYTM" CloseWindowByDoubleClickOnIcon="True">
-                <ui:TitleBar.Icon>
-                    <ui:ImageIcon Source="/assets/logos/Logo.png"/>
-                </ui:TitleBar.Icon>
-
-                <ui:TitleBar.Header>
-                    <ui:TextBox Name="SearchBox" 
-                        Width="320"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        PlaceholderText="Search for songs..."
-                        TextChanged="SearchBox_TextChanged" 
-                        GotFocus="SearchBox_GotFocus"/>
-                </ui:TitleBar.Header>
-            </ui:TitleBar>
+                    <TextBlock Text="Scrubber:" FontSize="16" Margin="0, 4"/>
+                    <StackPanel Tag="DebugScrubber" Margin="8, 4, 0, 4">
+                        <TextBlock Name="DebugScrubberValue" Foreground="Yellow" FontSize="16" Margin="0, 4"/>
+                        <TextBlock Name="DebugScrubberMaximum" Foreground="Yellow" FontSize="16" Margin="0, 4"/>
+                    </StackPanel>
+                </ui:StackPanel>
+            </Border>
         </Grid>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+        
+            <MediaElement Name="MediaPlayer" LoadedBehavior="Manual" Visibility="Collapsed" MediaEnded="MediaPlayer_MediaEnded"/>
 
-        <ui:NavigationView Name="NavView" Grid.Row="1" 
-                           IsPaneOpen="False" 
-                           IsBackButtonVisible="Collapsed" 
-                           IsPaneToggleVisible="False" 
-                           IsFooterSeparatorVisible="False" 
-                           IsTopSeparatorVisible="False">
-
-            <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Search28}" TargetPageType="{x:Type view:SearchPage}"/>
-                <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Play28}" TargetPageType="{x:Type view:FullSongPage}"/>
-                <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=List28}"/>
-            </ui:NavigationView.MenuItems>
-            
-            <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Settings28}"/>
-            </ui:NavigationView.FooterMenuItems>
-        </ui:NavigationView>
-
-        <ui:Border Grid.RowSpan="2" VerticalAlignment="Bottom" Height="48" Width="400" BorderThickness="1" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" Opacity="0.95" CornerRadius="6,6,0,0">
-            <Grid>
+            <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
+                <ui:Button Name="NavigationBackButton" Grid.Column="0" Margin="4" Icon="{ui:SymbolIcon Symbol=ArrowLeft28}" Click="NavigationBackButton_Click"
+                    Background="Transparent" BorderThickness="0" Width="38" Height="38" IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorDisabledBrush}"/>
+                <ui:TitleBar Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="0" Name="TitleBar" Title="WinYTM" CloseWindowByDoubleClickOnIcon="True">
+                    <ui:TitleBar.Icon>
+                        <ui:ImageIcon Source="/assets/logos/Logo.png"/>
+                    </ui:TitleBar.Icon>
 
-                <ui:Button Grid.Column="1" Name="MediaBackButton" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click">
-                    <ui:Button.Icon>
-                        <ui:SymbolIcon Symbol="FastForward28" FontSize="20" RenderTransformOrigin="0.5,0.5">
-                            <ui:SymbolIcon.RenderTransform>
-                                <RotateTransform Angle="180"/>
-                            </ui:SymbolIcon.RenderTransform>
-                        </ui:SymbolIcon>
-                    </ui:Button.Icon>
-                </ui:Button>
-                <ui:Button Grid.Column="2" Name="MediaToggleButton" Icon="{ui:SymbolIcon Symbol=Play28, FontSize=20}" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click"/>
-                <ui:Button Grid.Column="3" Name="MediaForwardButton" Icon="{ui:SymbolIcon Symbol=FastForward28, FontSize=20}" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click"/>
-                <Slider Grid.Column="5" Name="MediaVolumeSlider" Margin="0,0,8,0" VerticalAlignment="Center" ValueChanged="MediaVolumeSlider_ValueChanged"/>
+                    <ui:TitleBar.Header>
+                        <ui:TextBox Name="SearchBox" 
+                            Width="320"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            PlaceholderText="Search for songs..."
+                            TextChanged="SearchBox_TextChanged" 
+                            GotFocus="SearchBox_GotFocus"/>
+                    </ui:TitleBar.Header>
+                </ui:TitleBar>
             </Grid>
-        </ui:Border>
+
+            <ui:NavigationView Name="NavView" Grid.Row="1" 
+                               IsPaneOpen="False" 
+                               IsBackButtonVisible="Collapsed" 
+                               IsPaneToggleVisible="False" 
+                               IsFooterSeparatorVisible="False" 
+                               IsTopSeparatorVisible="False">
+
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Search28}" TargetPageType="{x:Type view:SearchPage}"/>
+                    <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Play28}" TargetPageType="{x:Type view:FullSongPage}"/>
+                    <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=List28}"/>
+                </ui:NavigationView.MenuItems>
+            
+                <ui:NavigationView.FooterMenuItems>
+                    <ui:NavigationViewItem Icon="{ui:SymbolIcon Symbol=Settings28}"/>
+                </ui:NavigationView.FooterMenuItems>
+            </ui:NavigationView>
+
+            <ui:Border Grid.RowSpan="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Height="86" Width="400" BorderThickness="1" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" Opacity="0.95" CornerRadius="6,6,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="48"/>
+                    </Grid.RowDefinitions>
+                    <Slider Grid.Row="0" Name="MediaDurationSlider" Margin="8,4,8,4" VerticalAlignment="Center" Maximum="100"/>
+
+                    <ui:Button Grid.Row="1" Name="MediaRepeatButton" Icon="{ui:SymbolIcon Symbol=ArrowRepeatAll24, FontSize=20}" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="4,4" Width="40" Padding="0" Click="MediaControlButton_Click"/>
+                
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ui:Button Grid.Column="1" Name="MediaBackButton" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="FastForward28" FontSize="20" RenderTransformOrigin="0.5,0.5">
+                                    <ui:SymbolIcon.RenderTransform>
+                                        <RotateTransform Angle="180"/>
+                                    </ui:SymbolIcon.RenderTransform>
+                                </ui:SymbolIcon>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                        <ui:Button Grid.Column="2" Name="MediaToggleButton" Icon="{ui:SymbolIcon Symbol=Play28, FontSize=20}" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click"/>
+                        <ui:Button Grid.Column="3" Name="MediaForwardButton" Icon="{ui:SymbolIcon Symbol=FastForward28, FontSize=20}" VerticalAlignment="Stretch" Margin="2,4" Width="40" Padding="0" Click="MediaControlButton_Click"/>
+                    </Grid>
+
+                    <Slider Grid.Row="1" Name="MediaVolumeSlider" Margin="0,0,8,0" VerticalAlignment="Center" HorizontalAlignment="Right" ValueChanged="MediaVolumeSlider_ValueChanged" IsSnapToTickEnabled="True" Maximum="100"/>
+                </Grid>
+            </ui:Border>
+        </Grid>
     </Grid>
 </ui:FluentWindow>

@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using YouTubeApi;
 using WinYTM.View;
+using System.Windows.Data;
+using AngleSharp.Html.Parser;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace WinYTM.Classes
 {
@@ -19,9 +16,15 @@ namespace WinYTM.Classes
         public required YouTube.Video Media { get; set; }
     }
 
-    public class SongCard : Wpf.Ui.Controls.Button
+    public class SongCard : Wpf.Ui.Controls.Button, INavigationAware
     {
         public Song Song { get; set; }
+
+        private Helpers.Cover coverData;
+        private MainWindow? MainWindow => Application.Current.MainWindow as MainWindow;
+        private Wpf.Ui.Controls.SymbolIcon playStateIndicator;
+        private Wpf.Ui.Controls.Image thumbnailImage;
+        private CancellationTokenSource checkToken = new ();
         public SongCard(Song song)
         {
             Song = song;
@@ -38,36 +41,67 @@ namespace WinYTM.Classes
             this.SetResourceReference(StyleProperty, typeof(Wpf.Ui.Controls.Button));
 
             this.CornerRadius = new CornerRadius(12);
-            this.SetResourceReference(Wpf.Ui.Controls.Button.BackgroundProperty, "ControlFillColorDefaultBrush");
-            this.Height = 60;
+            this.SetResourceReference(BackgroundProperty, "ControlFillColorDefaultBrush");
+            this.Height = 50;
             this.MinWidth = 200;
             this.HorizontalAlignment = HorizontalAlignment.Stretch;
             this.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             this.VerticalContentAlignment = VerticalAlignment.Stretch;
-            this.Margin = new Thickness(8,4,8,4);
-            this.SetResourceReference(Wpf.Ui.Controls.Button.BorderBrushProperty, "ControlStrokeColorDefaultBrush");
+            this.Margin = new Thickness(8, 4, 12, 4);
+            this.SetResourceReference(BorderBrushProperty, "ControlStrokeColorDefaultBrush");
             this.Padding = new Thickness(0);
             this.Content = Grid;
             this.Click += SongCard_Click;
             this.MouseDoubleClick += SongCard_MouseDoubleClick;
-
-            var thumbnailBitmap = new BitmapImage();
-            thumbnailBitmap.BeginInit();
-            thumbnailBitmap.UriSource = new Uri(song.Media.Thumbnails.LowResUrl!);
-            thumbnailBitmap.EndInit();
-
-            var thumbnailImage = new Wpf.Ui.Controls.Image()
+            (Application.Current.MainWindow as MainWindow)!.Closing += Application_Closing;
+            this.ContextMenu = new ContextMenu() 
             {
-                Source = thumbnailBitmap,
+                Items = 
+                { 
+                    new MenuItem()
+                    { 
+                        Header = "Play",
+                        Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.Play20)
+                    },
+                }
+            };
+            
+
+            coverData = new Helpers.Cover(song.Media.Thumbnails.MediumResUrl!, true);
+
+            var imageGrid = new Grid();
+
+            playStateIndicator = new Wpf.Ui.Controls.SymbolIcon()
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Symbol = Wpf.Ui.Controls.SymbolRegular.Play28,
+                Filled = true,
+                Foreground = new SolidColorBrush(Colors.White),
+                FontSize = 24,
+                Visibility = Visibility.Collapsed,
+            };
+            
+
+            thumbnailImage = new Wpf.Ui.Controls.Image()
+            {
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center,
                 Width = this.Height - 8,
                 Height = this.Height - 8,
                 Background = new SolidColorBrush(Colors.Transparent),
                 Margin = new Thickness(4),
-                CornerRadius = new CornerRadius(6),
+                CornerRadius = new CornerRadius(8),
             };
+
+            Binding imageBind = new Binding("Bitmap");
+            imageBind.Source = coverData;
+            imageBind.Mode = BindingMode.OneWay;
+            BindingOperations.SetBinding(thumbnailImage, Wpf.Ui.Controls.Image.SourceProperty, imageBind);
             Grid.SetColumn(thumbnailImage, 0);
+
+            imageGrid.Children.Add(thumbnailImage);
+            imageGrid.Children.Add(playStateIndicator);
 
             var title = song.Title;
             int length = (int)Math.Round(Application.Current.MainWindow.ActualWidth / 8.5d);
@@ -119,12 +153,44 @@ namespace WinYTM.Classes
             durationText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
             Grid.SetColumn(durationText, 2);
 
-            Grid.Children.Add(thumbnailImage);
+            Grid.Children.Add(imageGrid);
             Grid.Children.Add(textStack);
             Grid.Children.Add(durationText);
+
+            _ = checkCurrentSong(checkToken.Token);
         }
 
-        private void SongCard_Click(object sender, RoutedEventArgs e)
+        private void Application_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            checkToken.Cancel();
+        }
+
+        private async Task checkCurrentSong(CancellationToken token)
+        {
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                if (MainWindow!.currentSong!.Url == Song.Url)
+                {
+                    Application.Current.Dispatcher.Invoke(() => 
+                    {
+                        playStateIndicator.Visibility = Visibility.Visible;
+                        thumbnailImage.Opacity = 0.4d;
+                    });
+                }
+                else
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        playStateIndicator.Visibility = Visibility.Collapsed;
+                        thumbnailImage.Opacity = 1.0d;
+                    });
+                }
+                await Task.Delay(50);
+            }
+        }
+
+        private async void SongCard_Click(object sender, RoutedEventArgs e)
         {
             if (Application.Current.MainWindow is MainWindow mainWin)
             {
@@ -141,6 +207,17 @@ namespace WinYTM.Classes
                 _ = mainWin.SetSong(this.Song);
                 mainWin.NavView.Navigate(typeof(FullSongPage));
             }
+        }
+
+        Task INavigationAware.OnNavigatedFromAsync()
+        {
+            checkToken.Cancel();
+            return Task.CompletedTask;
+        }
+
+        Task INavigationAware.OnNavigatedToAsync()
+        {
+            return Task.CompletedTask;
         }
     }
 }
