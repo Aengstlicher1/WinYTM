@@ -13,6 +13,7 @@ namespace WinYTM.Classes
     {
         public required string Url { get; set; }
         public required string Title { get; set; }
+        public required string Artist { get; set; }
         public required YouTube.Video Media { get; set; }
     }
 
@@ -20,13 +21,18 @@ namespace WinYTM.Classes
     {
         public Song Song { get; set; }
 
+        
         private Helpers.Cover coverData;
+        private bool isIndicatorEnabled;
+        private bool isDurationVisible;
         private MainWindow? MainWindow => Application.Current.MainWindow as MainWindow;
         private Wpf.Ui.Controls.SymbolIcon playStateIndicator;
         private Wpf.Ui.Controls.Image thumbnailImage;
         private CancellationTokenSource checkToken = new ();
-        public SongCard(Song song)
+        public SongCard(Song song, bool IndicatorEnabled = true, bool DurationVisible = true)
         {
+            isIndicatorEnabled = IndicatorEnabled;
+            isDurationVisible = DurationVisible;
             Song = song;
             var Grid = new Grid()
             {
@@ -118,10 +124,10 @@ namespace WinYTM.Classes
             titleText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorPrimaryBrush");
             Grid.SetRow(titleText, 0);
 
-            var artist = song.Media.Author.Split("•");
+            var artist = song;
             var artistText = new TextBlock()
             {
-                Text = artist[0],
+                Text = song.Artist,
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Margin = new Thickness(8, 0, 8, 4),
@@ -141,21 +147,23 @@ namespace WinYTM.Classes
 
             textStack.Children.Add(titleText);
             textStack.Children.Add(artistText);
-
-            var duration = song.Media.Duration.ToString()!.Substring(3);
-            var durationText = new TextBlock()
+            if (DurationVisible)
             {
-                Text = duration,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 4, 0),
-            };
-            durationText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
-            Grid.SetColumn(durationText, 2);
+                var duration = song.Media.Duration.ToString()!.Substring(3);
+                var durationText = new TextBlock()
+                {
+                    Text = duration,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 4, 0),
+                };
+                durationText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+                Grid.SetColumn(durationText, 2);
+                Grid.Children.Add(durationText);
+            }
 
             Grid.Children.Add(imageGrid);
             Grid.Children.Add(textStack);
-            Grid.Children.Add(durationText);
 
             _ = checkCurrentSong(checkToken.Token);
         }
@@ -167,26 +175,29 @@ namespace WinYTM.Classes
 
         private async Task checkCurrentSong(CancellationToken token)
         {
-            while (true)
+            if (isIndicatorEnabled)
             {
-                token.ThrowIfCancellationRequested();
-                if (MainWindow!.currentSong!.Url == Song.Url)
+                while (true)
                 {
-                    Application.Current.Dispatcher.Invoke(() => 
+                    token.ThrowIfCancellationRequested();
+                    if (MainWindow!.currentSong!.Url == Song.Url)
                     {
-                        playStateIndicator.Visibility = Visibility.Visible;
-                        thumbnailImage.Opacity = 0.4d;
-                    });
-                }
-                else
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            playStateIndicator.Visibility = Visibility.Visible;
+                            thumbnailImage.Opacity = 0.4d;
+                        });
+                    }
+                    else
                     {
-                        playStateIndicator.Visibility = Visibility.Collapsed;
-                        thumbnailImage.Opacity = 1.0d;
-                    });
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            playStateIndicator.Visibility = Visibility.Collapsed;
+                            thumbnailImage.Opacity = 1.0d;
+                        });
+                    }
+                    await Task.Delay(50);
                 }
-                await Task.Delay(50);
             }
         }
 

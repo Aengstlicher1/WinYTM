@@ -9,14 +9,14 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="FullSongPage">
 
-    <Grid>
+    <Grid Name="RootGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Name="ImageBackground" Margin="12">
-            <ui:Image Name="SongCover" Grid.Column="0" CornerRadius="6" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12"/>
+        <Border Name="ImageBackground" Grid.Column="0" Margin="12" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <ui:Image Name="SongCover" CornerRadius="6" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="12"/>
         </Border>
         
     </Grid>

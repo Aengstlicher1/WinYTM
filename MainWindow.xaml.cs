@@ -1,6 +1,8 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Media;
 using WinYTM.Classes;
 using Wpf.Ui.Controls;
 using YouTubeApi;
@@ -11,10 +13,12 @@ namespace WinYTM
     public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         public bool isMediaPlaying { get; set; }
+        public bool isMediaLoaded { get; set; }
+        public double last_volume { get; set; } = 0;
         public YouTube.PaginatedResults? SearchResults { get; set; }
         public Song? currentSong { get; set; }
-        public bool isRepeating { get; set; } = true;
         public bool isScrubbing => MediaDurationSlider.IsMouseCaptureWithin;
+        public Config.AppConfig AppConfig { get; set; }
 
         private bool isDebugVisible { get; set; } = false;
 
@@ -23,12 +27,47 @@ namespace WinYTM
             InitializeComponent();
             Wpf.Ui.Appearance.ApplicationThemeManager.ApplySystemTheme();
             Loaded += MainWindow_Loaded;
-            MediaVolumeSlider.Value = MediaVolumeSlider.Maximum / 2;
 
             if (isDebugVisible)
             {
                 DebugGrid.Visibility = Visibility.Visible;
                 DebugLoop();
+            }
+
+            if (!File.Exists(Config.Location))
+            {
+                Config.WriteSettings(new Config.AppConfig());
+            }
+            AppConfig = Config.ReadSettings();
+            SetConfig();
+
+            SaveConfigLoop();
+        }
+
+        private void SetConfig()
+        {
+            if (AppConfig.LastSong != null) _ = SetSong(AppConfig.LastSong, false);
+
+            MediaRepeatButton.Icon = AppConfig.isMediaRepeating
+                ? new SymbolIcon(SymbolRegular.ArrowRepeatAll24) { FontSize = 20 }
+                : new SymbolIcon(SymbolRegular.ArrowRepeatAllOff24) { FontSize = 20 };
+
+            MediaShuffleButton.Icon = AppConfig.isMediaShuffled
+                ? new SymbolIcon(SymbolRegular.ArrowShuffle24) { FontSize = 20 }
+                : new SymbolIcon(SymbolRegular.ArrowShuffleOff24) { FontSize = 20 };
+
+            SetMediaVolumeButton();
+            MediaVolumeSlider.Value = AppConfig.volume;
+        }
+
+        private async void SaveConfigLoop()
+        {
+            while (true)
+            {
+                AppConfig.LastSong = currentSong;
+                AppConfig.volume = MediaVolumeSlider.Value;
+                Config.WriteSettings(AppConfig);
+                await Task.Delay(200);
             }
         }
 
@@ -56,7 +95,7 @@ namespace WinYTM
             ScrubberLoop();
         }
 
-        public async Task SetSong(Song song)
+        public async Task SetSong(Song song, bool autoStart = true)
         {
             if (currentSong != null)
             {
@@ -69,28 +108,36 @@ namespace WinYTM
             }
 
             currentSong = song;
-
             var streams = await YouTube.GetStreamInfo(song.Media.VideoId);
-
             MediaPlayer.Source = new Uri(streams[0].Url);
-
+            isMediaLoaded = true;
             MediaDurationSlider.Value = 0d;
+            MediaDurationFull.Text = song.Media.Duration.ToString().Replace("00:", "");
 
-            StartSong();
+            MediaSongGrid.Children.Clear();
+            MediaSongGrid.Children.Add(new SongCard(song, false, false) { IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness() });
+
+            if (autoStart) StartSong();
         }
 
         public void StartSong()
         {
-            MediaPlayer.Play();
-            isMediaPlaying = true;
-            MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Pause28) { FontSize = 20 };
+            if (!isMediaPlaying && isMediaLoaded)
+            {
+                MediaPlayer.Play();
+                isMediaPlaying = true;
+                MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Pause28) { FontSize = 20 };
+            }
         }
 
         public void PauseSong()
         {
-            if (MediaPlayer.CanPause) MediaPlayer.Pause();
-            isMediaPlaying = false;
-            MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Play28) { FontSize = 20 };
+            if (MediaPlayer.CanPause)
+            {
+                MediaPlayer.Pause();
+                isMediaPlaying = false;
+                MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Play28) { FontSize = 20 };
+            }
         }
 
         private async void ScrubberLoop()
@@ -105,7 +152,10 @@ namespace WinYTM
                         {
                             try
                             {
-                                MediaPlayer.IsMuted = true;
+                                if (!AppConfig.isMediaMuted)
+                                {
+                                    MediaPlayer.IsMuted = true;
+                                }
                                 var _val = MediaDurationSlider.Value;
                                 var _duration = MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
 
@@ -122,7 +172,10 @@ namespace WinYTM
                         {
                             try
                             {
-                                MediaPlayer.IsMuted = false;
+                                if (!AppConfig.isMediaMuted)
+                                {
+                                    MediaPlayer.IsMuted = false;
+                                }
                                 var _pos = MediaPlayer.Position.TotalSeconds;
                                 var _duration = (int)MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
 
@@ -172,12 +225,46 @@ namespace WinYTM
                         break;
 
                     case "MediaRepeatButton":
-                        MediaRepeatButton.Icon = !isRepeating
+                        MediaRepeatButton.Icon = !AppConfig.isMediaRepeating
                             ? new SymbolIcon(SymbolRegular.ArrowRepeatAll24) { FontSize = 20 } 
                             : new SymbolIcon(SymbolRegular.ArrowRepeatAllOff24) { FontSize = 20 };
-                        isRepeating = !isRepeating;
+                        AppConfig.isMediaRepeating = !AppConfig.isMediaRepeating;
+                        break;
+                    case "MediaVolumeButton":
+                        AppConfig.isMediaMuted = !AppConfig.isMediaMuted;
+                        SetMediaVolumeButton();
+
+                        break;
+                    case "MediaShuffleButton":
+                        AppConfig.isMediaShuffled = !AppConfig.isMediaShuffled;
+                        MediaShuffleButton.Icon = AppConfig.isMediaShuffled
+                            ? new SymbolIcon(SymbolRegular.ArrowShuffle24) { FontSize = 20 }
+                            : new SymbolIcon(SymbolRegular.ArrowShuffleOff24) { FontSize = 20 };
                         break;
                 }
+            }
+        }
+
+        private void SetMediaVolumeButton()
+        {
+            MediaVolumeButton.Icon = AppConfig.isMediaMuted
+                ? new SymbolIcon(SymbolRegular.Speaker024) { FontSize = 20 }
+                : new SymbolIcon(SymbolRegular.Speaker224) { FontSize = 20 };
+            MediaPlayer.IsMuted = AppConfig.isMediaMuted;
+
+            if (AppConfig.isMediaMuted)
+            {
+                last_volume = MediaVolumeSlider.Value;
+                MediaVolumeSlider.Value = 0;
+            }
+            else
+            {
+                if (last_volume == 0)
+                {
+                    MediaVolumeSlider.Value = 50;
+                    return;
+                }
+                MediaVolumeSlider.Value = last_volume;
             }
         }
 
@@ -193,8 +280,11 @@ namespace WinYTM
 
         private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string searchQuery = SearchBox.Text;
+            _ = Search(SearchBox.Text);
+        } 
 
+        private async Task Search(string searchQuery) 
+        {
             _searchCTS.Cancel();
             _searchCTS = new CancellationTokenSource();
             var token = _searchCTS.Token;
@@ -210,32 +300,43 @@ namespace WinYTM
             {
                 await Task.Delay(50, token);
 
-                NavView.Navigate(typeof(View.SearchPage));
+                Dispatcher.Invoke(() => { NavView.Navigate(typeof(View.SearchPage)); });
 
                 var results = await YouTube.SearchYouTubeMusic(searchQuery, YouTube.MusicSearchFilter.Songs, token);
                 token.ThrowIfCancellationRequested();
 
-                SearchResults = results;
+                Dispatcher.Invoke(() => { SearchResults = results; });
                 OnSearchCompleted!.Invoke(token);
             }
             catch (OperationCanceledException) { }
-        } 
+        }
 
         private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
         {
             NavView.Navigate(typeof(View.SearchPage));
         }
 
-        public double VolumePercent = 1d;
-
         private void MediaVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            MediaPlayer.Volume = e.NewValue / (10 + VolumePercent * 100);
+            MediaPlayer.Volume = e.NewValue / 1000;
+
+            if (AppConfig.isMediaMuted && MediaPlayer.Volume != 0)
+            {
+                AppConfig.isMediaMuted = false;
+                MediaVolumeButton.Icon = new SymbolIcon(SymbolRegular.Speaker224) { FontSize = 20 };
+                MediaPlayer.IsMuted = false;
+            }
+
+            if (MediaPlayer.Volume == 0 && !AppConfig.isMediaMuted)
+            {
+                AppConfig.isMediaMuted = true;
+                SetMediaVolumeButton();
+            }
         }
 
         private async void MediaPlayer_MediaEnded(object sender, RoutedEventArgs e)
         {
-            if (isRepeating)
+            if (AppConfig.isMediaRepeating)
             {
                 await Task.Delay(100);
                 MediaPlayer.Position = TimeSpan.Zero;
@@ -243,6 +344,14 @@ namespace WinYTM
             else
             {
                 PauseSong();
+            }
+        }
+
+        private void MediaDurationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (currentSong != null)
+            {
+                MediaDurationCurrent.Text = new TimeSpan(0, 0,(int)(currentSong.Media.Duration.TotalSeconds * (e.NewValue / 100))).ToString().Remove(0, 3);
             }
         }
     }

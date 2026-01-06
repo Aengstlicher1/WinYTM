@@ -1,12 +1,9 @@
-﻿using AngleSharp.Html.Dom;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using System.Threading.Tasks;
+﻿using LibVLCSharp.Shared;
 using System.Windows;
 using System.Windows.Controls;
 using WinYTM.Classes;
 using YouTubeApi;
-using YoutubeExplode;
+
 
 namespace WinYTM.View
 {
@@ -18,7 +15,7 @@ namespace WinYTM.View
         public SearchPage()
         {
             InitializeComponent();
-            
+
             var mainWin = Application.Current.MainWindow as MainWindow;
             mainWin!.OnSearchCompleted += MainWin_OnSearchCompleted;
             mainWin!.OnSearchCleared += SearchPage_OnSearchCleared;
@@ -48,7 +45,7 @@ namespace WinYTM.View
 
                 if (result.Content is YouTube.Video music)
                 {
-                    var song = new Song() { Title = music.Title, Url = music.Url, Media = music };
+                    var song = new Song() { Title = music.Title, Url = music.Url, Media = music, Artist = music.Author.Split("•")[0] };
 
                     token.ThrowIfCancellationRequested();
 

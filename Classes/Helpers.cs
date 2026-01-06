@@ -51,7 +51,6 @@ namespace WinYTM.Classes
 
                 _source.EndInit();
 
-
                 handleHandler();
             }
 
