@@ -24,7 +24,10 @@
     </PackageReference>
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
     <PackageReference Include="WPF-UI" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.Abstractions" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.1.0" />
     <PackageReference Include="WPF-UI.Tray" Version="4.1.0" />
+    <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
     <PackageReference Include="YouTubeApi" Version="2.0.0" />
   </ItemGroup>
 

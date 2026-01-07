@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using LibVLCSharp.Shared;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,15 +16,21 @@ namespace WinYTM
         public double last_volume { get; set; } = 0;
         public YouTube.PaginatedResults? SearchResults { get; set; }
         public Song? currentSong { get; set; }
+        public Playlist? currentPlaylist{ get; set; }
         public bool isScrubbing => MediaDurationSlider.IsMouseCaptureWithin;
         public Config.AppConfig AppConfig { get; set; }
 
         private string? currentTempFile { get; set; } = null;
         private bool isDebugVisible { get; set; } = false;
+        private LibVLC _libVlc { get; set; } = new LibVLC("--intf", "dummy", "--no-video");
+        private MediaPlayer _mediaPlayer { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
+            _mediaPlayer = new MediaPlayer(_libVlc);
+            VideoViewer.MediaPlayer = _mediaPlayer;
+
             Wpf.Ui.Appearance.ApplicationThemeManager.ApplySystemTheme();
             Loaded += MainWindow_Loaded;
 
@@ -74,10 +81,10 @@ namespace WinYTM
         {
             while (true)
             {
-                // MediaPlayer
-                DebugPlayerDuration.Text = "Duration: " + MediaPlayer.NaturalDuration;
-                DebugPlayerPosition.Text = "Position: " + MediaPlayer.Position;
-                DebugPlayerVolume.Text = "Volume: " + MediaPlayer.Volume;
+                // VideoViewer
+                DebugPlayerDuration.Text = "Duration: " + VideoViewer.MediaPlayer!.Length;
+                DebugPlayerPosition.Text = "Position: " + VideoViewer.MediaPlayer.Length * VideoViewer.MediaPlayer.Position;
+                DebugPlayerVolume.Text = "Volume: " + VideoViewer.MediaPlayer.Volume;
 
                 // Scrubber
                 DebugScrubberValue.Text = "Value: " + MediaDurationSlider.Value;
@@ -89,6 +96,8 @@ namespace WinYTM
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            NavView.Navigate(typeof(View.HomePage));
+
             Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this, Wpf.Ui.Controls.WindowBackdropType.Mica);
             VisualsLoop();
             ScrubberLoop();
@@ -100,7 +109,7 @@ namespace WinYTM
             {
                 if (currentSong.Url == song.Url)
                 {
-                    MediaPlayer.Position = TimeSpan.Zero;
+                    VideoViewer.MediaPlayer!.Position = 0;
                     StartSong();
                     return;
                 }
@@ -109,25 +118,14 @@ namespace WinYTM
 
             currentSong = song;
             var streams = await YouTube.GetStreamInfo(song.Media.VideoId);
+            VideoViewer.MediaPlayer!.Media = new LibVLCSharp.Shared.Media(_libVlc, new Uri(streams[0].Url));
 
-            try { File.Delete(currentTempFile!); } catch { }
-            currentTempFile = Path.GetTempFileName() + ".mp4";
-            var client = new System.Net.Http.HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-            var response = await client.GetAsync(streams[0].Url);
-
-            using var FileStream = File.Create(currentTempFile);
-            await response.Content.CopyToAsync(FileStream);
-
-            MediaPlayer.Source = new Uri(currentTempFile);
-
-            //MediaPlayer.Source = new Uri(streams[0].Url);
-            MediaPlayer.MediaEnded += (s, e) =>
+            VideoViewer.MediaPlayer.EndReached += (s, e) =>
             {
                 if (AppConfig.isMediaRepeating)
                 {
                     Thread.Sleep(200);
-                    MediaPlayer.Position = TimeSpan.Zero;
+                    Dispatcher.Invoke(() => { VideoViewer.MediaPlayer.Position = 0; });
                 }
                 else
                 {
@@ -155,7 +153,7 @@ namespace WinYTM
         {
             if (!isMediaPlaying && isMediaLoaded)
             {
-                MediaPlayer.Play();
+                VideoViewer.MediaPlayer!.Play();
                 isMediaPlaying = true;
                 MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Pause28) { FontSize = 20 };
             }
@@ -163,9 +161,9 @@ namespace WinYTM
 
         public void PauseSong()
         {
-            if (MediaPlayer.CanPause)
+            if (VideoViewer.MediaPlayer!.CanPause)
             {
-                MediaPlayer.Pause();
+                VideoViewer.MediaPlayer.Pause();
                 isMediaPlaying = false;
                 MediaToggleButton.Icon = new SymbolIcon(SymbolRegular.Play28) { FontSize = 20 };
             }
@@ -179,18 +177,17 @@ namespace WinYTM
                 {
                     if (currentSong != null)
                     {
-                        if (MediaPlayer.CanPause)
+                        if (VideoViewer.MediaPlayer!.CanPause)
                         {
                             try
                             {
                                 if (!AppConfig.isMediaMuted)
                                 {
-                                    MediaPlayer.IsMuted = true;
+                                    VideoViewer.MediaPlayer.Mute = true;
                                 }
                                 var _val = MediaDurationSlider.Value;
-                                var _duration = MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
 
-                                MediaPlayer.Position = new TimeSpan(0, 0, (int)Math.Floor((int)_duration * (_val / 100)));
+                                VideoViewer.MediaPlayer.Position = (float)(_val / 100);
                             }
                             catch { }
                         }
@@ -200,18 +197,15 @@ namespace WinYTM
                 {
                     if (currentSong != null)
                     {
-                        if (MediaPlayer.CanPause)
+                        if (VideoViewer.MediaPlayer!.CanPause)
                         {
                             try
                             {
                                 if (!AppConfig.isMediaMuted)
                                 {
-                                    MediaPlayer.IsMuted = false;
+                                    VideoViewer.MediaPlayer.Mute = false;
                                 }
-                                var _pos = MediaPlayer.Position.TotalSeconds;
-                                var _duration = (int)MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
-
-                                MediaDurationSlider.Value = Helpers.getPercent(_pos, _duration);
+                                MediaDurationSlider.Value = VideoViewer.MediaPlayer.Position * 100;
                             }
                             catch { }
                         }
@@ -283,7 +277,7 @@ namespace WinYTM
             MediaVolumeButton.Icon = AppConfig.isMediaMuted
                 ? new SymbolIcon(SymbolRegular.Speaker024) { FontSize = 20 }
                 : new SymbolIcon(SymbolRegular.Speaker224) { FontSize = 20 };
-            MediaPlayer.IsMuted = AppConfig.isMediaMuted;
+            VideoViewer.MediaPlayer!.Mute = AppConfig.isMediaMuted;
 
             if (AppConfig.isMediaMuted)
             {
@@ -350,16 +344,16 @@ namespace WinYTM
 
         private void MediaVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            MediaPlayer.Volume = e.NewValue / 1000;
+            VideoViewer.MediaPlayer!.Volume = (int)e.NewValue;
 
-            if (AppConfig.isMediaMuted && MediaPlayer.Volume != 0)
+            if (AppConfig.isMediaMuted && VideoViewer.MediaPlayer.Volume != 0)
             {
                 AppConfig.isMediaMuted = false;
                 MediaVolumeButton.Icon = new SymbolIcon(SymbolRegular.Speaker224) { FontSize = 20 };
-                MediaPlayer.IsMuted = false;
+                VideoViewer.MediaPlayer.Mute = false;
             }
 
-            if (MediaPlayer.Volume == 0 && !AppConfig.isMediaMuted)
+            if (VideoViewer.MediaPlayer.Volume == 0 && !AppConfig.isMediaMuted)
             {
                 AppConfig.isMediaMuted = true;
                 SetMediaVolumeButton();
