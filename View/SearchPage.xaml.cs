@@ -1,5 +1,4 @@
-﻿using LibVLCSharp.Shared;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using WinYTM.Classes;
 using YouTubeApi;
@@ -45,7 +44,7 @@ namespace WinYTM.View
 
                 if (result.Content is YouTube.Video music)
                 {
-                    var song = new Song() { Title = music.Title, Url = music.Url, Media = music, Artist = music.Author.Split("•")[0] };
+                    var song = new Song() { Title = music.Title, Url = music.Url, Media = music, Artist = music.Author.Split("•")[0].Trim() };
 
                     token.ThrowIfCancellationRequested();
 

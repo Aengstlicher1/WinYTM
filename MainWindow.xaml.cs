@@ -1,12 +1,10 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
 using WinYTM.Classes;
 using Wpf.Ui.Controls;
 using YouTubeApi;
-using YoutubeExplode;
 
 namespace WinYTM
 {
@@ -20,6 +18,7 @@ namespace WinYTM
         public bool isScrubbing => MediaDurationSlider.IsMouseCaptureWithin;
         public Config.AppConfig AppConfig { get; set; }
 
+        private string? currentTempFile { get; set; } = null;
         private bool isDebugVisible { get; set; } = false;
 
         public MainWindow()
@@ -107,12 +106,44 @@ namespace WinYTM
                 }
             }
 
+
             currentSong = song;
             var streams = await YouTube.GetStreamInfo(song.Media.VideoId);
-            MediaPlayer.Source = new Uri(streams[0].Url);
+
+            try { File.Delete(currentTempFile!); } catch { }
+            currentTempFile = Path.GetTempFileName() + ".mp4";
+            var client = new System.Net.Http.HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            var response = await client.GetAsync(streams[0].Url);
+
+            using var FileStream = File.Create(currentTempFile);
+            await response.Content.CopyToAsync(FileStream);
+
+            MediaPlayer.Source = new Uri(currentTempFile);
+
+            //MediaPlayer.Source = new Uri(streams[0].Url);
+            MediaPlayer.MediaEnded += (s, e) =>
+            {
+                if (AppConfig.isMediaRepeating)
+                {
+                    Thread.Sleep(200);
+                    MediaPlayer.Position = TimeSpan.Zero;
+                }
+                else
+                {
+                    PauseSong();
+                }
+            };
+
+
             isMediaLoaded = true;
             MediaDurationSlider.Value = 0d;
-            MediaDurationFull.Text = song.Media.Duration.ToString().Replace("00:", "");
+            string duration = song.Media.Duration.ToString().Substring(3);
+            if (song.Media.Duration.Hours >= 1)
+            {
+                duration = song.Media.Duration.ToString();
+            }
+            MediaDurationFull.Text = duration;
 
             MediaSongGrid.Children.Clear();
             MediaSongGrid.Children.Add(new SongCard(song, false, false) { IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness() });
@@ -160,7 +191,8 @@ namespace WinYTM
                                 var _duration = MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
 
                                 MediaPlayer.Position = new TimeSpan(0, 0, (int)Math.Floor((int)_duration * (_val / 100)));
-                            }   catch { }
+                            }
+                            catch { }
                         }
                     }
                 }
@@ -180,7 +212,8 @@ namespace WinYTM
                                 var _duration = (int)MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
 
                                 MediaDurationSlider.Value = Helpers.getPercent(_pos, _duration);
-                            }   catch { }
+                            }
+                            catch { }
                         }
                     }
                 }
@@ -226,7 +259,7 @@ namespace WinYTM
 
                     case "MediaRepeatButton":
                         MediaRepeatButton.Icon = !AppConfig.isMediaRepeating
-                            ? new SymbolIcon(SymbolRegular.ArrowRepeatAll24) { FontSize = 20 } 
+                            ? new SymbolIcon(SymbolRegular.ArrowRepeatAll24) { FontSize = 20 }
                             : new SymbolIcon(SymbolRegular.ArrowRepeatAllOff24) { FontSize = 20 };
                         AppConfig.isMediaRepeating = !AppConfig.isMediaRepeating;
                         break;
@@ -274,16 +307,15 @@ namespace WinYTM
         }
 
         public CancellationTokenSource _searchCTS = new CancellationTokenSource();
-        public YoutubeClient _youtube = new();
         public event Action<CancellationToken>? OnSearchCompleted;
         public event Action<CancellationToken>? OnSearchCleared;
 
         private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             _ = Search(SearchBox.Text);
-        } 
+        }
 
-        private async Task Search(string searchQuery) 
+        private async Task Search(string searchQuery)
         {
             _searchCTS.Cancel();
             _searchCTS = new CancellationTokenSource();
@@ -334,25 +366,17 @@ namespace WinYTM
             }
         }
 
-        private async void MediaPlayer_MediaEnded(object sender, RoutedEventArgs e)
-        {
-            if (AppConfig.isMediaRepeating)
-            {
-                await Task.Delay(100);
-                MediaPlayer.Position = TimeSpan.Zero;
-            }
-            else
-            {
-                PauseSong();
-            }
-        }
-
         private void MediaDurationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (currentSong != null)
             {
-                MediaDurationCurrent.Text = new TimeSpan(0, 0,(int)(currentSong.Media.Duration.TotalSeconds * (e.NewValue / 100))).ToString().Remove(0, 3);
+                MediaDurationCurrent.Text = new TimeSpan(0, 0, (int)(currentSong.Media.Duration.TotalSeconds * (e.NewValue / 100))).ToString().Remove(0, 3);
             }
+        }
+
+        private void MediaPlayer_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            Debug.WriteLine("!!!!  Media Failed: " + e.ErrorException.Message + " !!!!");
         }
     }
 }

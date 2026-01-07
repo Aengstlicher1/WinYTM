@@ -3,7 +3,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WinYTM.Classes;
 
@@ -73,7 +72,7 @@ namespace WinYTM.View
             public string? PlainLyrics { get; set; }
         }
 
-        private async void UpdateLoop(CancellationToken token = new ())
+        private async void UpdateLoop(CancellationToken token = new())
         {
             while (true)
             {

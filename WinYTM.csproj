@@ -12,19 +12,20 @@
   <ItemGroup>
     <None Remove="assets\default.jpg" />
     <None Remove="assets\logos\Logo.png" />
-    <None Remove="assets\logos\Logo_withBg.png"/>
+    <None Remove="assets\logos\Logo_withBg.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
-    <PackageReference Include="LibVLCSharp" Version="3.9.5" />
+    <PackageReference Include="LibVLCSharp" Version="3.9.5">
+      <TreatAsUsed>true</TreatAsUsed>
+    </PackageReference>
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.5">
+      <TreatAsUsed>true</TreatAsUsed>
+    </PackageReference>
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
     <PackageReference Include="WPF-UI" Version="4.1.0" />
-    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.1.0" />
     <PackageReference Include="WPF-UI.Tray" Version="4.1.0" />
-    <PackageReference Include="WPF-UI.Violeta" Version="4.0.3.6" />
     <PackageReference Include="YouTubeApi" Version="2.0.0" />
-    <PackageReference Include="YoutubeExplode" Version="6.5.6" />
-    <PackageReference Include="YoutubeExplode.Converter" Version="6.5.6" />
   </ItemGroup>
 
   <ItemGroup>

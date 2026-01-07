@@ -1,16 +1,6 @@
-﻿using ColorThiefDotNet;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace WinYTM.Classes
@@ -37,7 +27,7 @@ namespace WinYTM.Classes
 
             public event PropertyChangedEventHandler? PropertyChanged;
 
-            public Cover(string url,bool isSmall, Int32Rect area = default)
+            public Cover(string url, bool isSmall, Int32Rect area = default)
             {
                 _isSmall = isSmall;
                 _area = area;
@@ -99,7 +89,8 @@ namespace WinYTM.Classes
                 {
                     var cropped = new CroppedBitmap(_source, _area);
                     cropped.Freeze();
-                    Application.Current.Dispatcher.Invoke(() => {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
                         Bitmap = cropped;
                     });
                 }

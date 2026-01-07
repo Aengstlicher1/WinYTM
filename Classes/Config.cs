@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Reflection.Metadata;
 using System.Text.Json;
 
 namespace WinYTM.Classes
@@ -36,9 +35,13 @@ namespace WinYTM.Classes
             string jsonString = JsonSerializer.Serialize(config, options);
             try
             {
+                if (!Directory.Exists(Path.GetDirectoryName(Location)))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(Location)!);
+                }
                 File.WriteAllText(Location, jsonString);
             }
-            catch (Exception ex) { Debug.WriteLine($"Unable to save config: " + ex.Message);  }
+            catch (Exception ex) { Debug.WriteLine($"Unable to save config: " + ex.Message); }
         }
     }
 }

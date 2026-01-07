@@ -1,11 +1,10 @@
-﻿using System.Windows.Controls;
-using System.Windows;
-using System.Windows.Media;
-using YouTubeApi;
-using WinYTM.View;
+﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
-using AngleSharp.Html.Parser;
+using System.Windows.Media;
+using WinYTM.View;
 using Wpf.Ui.Abstractions.Controls;
+using YouTubeApi;
 
 namespace WinYTM.Classes
 {
@@ -21,27 +20,25 @@ namespace WinYTM.Classes
     {
         public Song Song { get; set; }
 
-        
+
         private Helpers.Cover coverData;
         private bool isIndicatorEnabled;
-        private bool isDurationVisible;
         private MainWindow? MainWindow => Application.Current.MainWindow as MainWindow;
         private Wpf.Ui.Controls.SymbolIcon playStateIndicator;
         private Wpf.Ui.Controls.Image thumbnailImage;
-        private CancellationTokenSource checkToken = new ();
+        private CancellationTokenSource checkToken = new();
         public SongCard(Song song, bool IndicatorEnabled = true, bool DurationVisible = true)
         {
             isIndicatorEnabled = IndicatorEnabled;
-            isDurationVisible = DurationVisible;
             Song = song;
             var Grid = new Grid()
             {
-                VerticalAlignment  = VerticalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
                 Background = new SolidColorBrush(Colors.Transparent),
 
             };
             Grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = GridLength.Auto });
-            Grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star)});
+            Grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
             Grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = GridLength.Auto });
 
             this.SetResourceReference(StyleProperty, typeof(Wpf.Ui.Controls.Button));
@@ -60,18 +57,18 @@ namespace WinYTM.Classes
             this.Click += SongCard_Click;
             this.MouseDoubleClick += SongCard_MouseDoubleClick;
             (Application.Current.MainWindow as MainWindow)!.Closing += Application_Closing;
-            this.ContextMenu = new ContextMenu() 
+            this.ContextMenu = new ContextMenu()
             {
-                Items = 
-                { 
+                Items =
+                {
                     new MenuItem()
-                    { 
+                    {
                         Header = "Play",
                         Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.Play20)
                     },
                 }
             };
-            
+
 
             coverData = new Helpers.Cover(song.Media.Thumbnails.MediumResUrl!, true);
 
@@ -87,7 +84,7 @@ namespace WinYTM.Classes
                 FontSize = 24,
                 Visibility = Visibility.Collapsed,
             };
-            
+
 
             thumbnailImage = new Wpf.Ui.Controls.Image()
             {
@@ -111,12 +108,12 @@ namespace WinYTM.Classes
 
             var title = song.Title;
             int length = (int)Math.Round(Application.Current.MainWindow.ActualWidth / 8.5d);
-            
+
 
             var titleText = new TextBlock()
-            { 
-                Text = title, 
-                TextWrapping = TextWrapping.Wrap, 
+            {
+                Text = title,
+                TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(8, 4, 8, 0),
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -134,7 +131,7 @@ namespace WinYTM.Classes
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
             artistText.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
-            Grid.SetRow(artistText, 1); 
+            Grid.SetRow(artistText, 1);
 
             var textStack = new Grid()
             {
@@ -149,7 +146,11 @@ namespace WinYTM.Classes
             textStack.Children.Add(artistText);
             if (DurationVisible)
             {
-                var duration = song.Media.Duration.ToString()!.Substring(3);
+                string duration = song.Media.Duration.ToString()!.Substring(3);
+                if (song.Media.Duration > new TimeSpan(1, 0, 0))
+                {
+                    duration = song.Media.Duration.ToString();
+                }
                 var durationText = new TextBlock()
                 {
                     Text = duration,
@@ -179,23 +180,27 @@ namespace WinYTM.Classes
             {
                 while (true)
                 {
-                    token.ThrowIfCancellationRequested();
-                    if (MainWindow!.currentSong!.Url == Song.Url)
+                    try
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
+                        token.ThrowIfCancellationRequested();
+                        if (MainWindow!.currentSong!.Url == Song.Url)
                         {
-                            playStateIndicator.Visibility = Visibility.Visible;
-                            thumbnailImage.Opacity = 0.4d;
-                        });
-                    }
-                    else
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                playStateIndicator.Visibility = Visibility.Visible;
+                                thumbnailImage.Opacity = 0.4d;
+                            });
+                        }
+                        else
                         {
-                            playStateIndicator.Visibility = Visibility.Collapsed;
-                            thumbnailImage.Opacity = 1.0d;
-                        });
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                playStateIndicator.Visibility = Visibility.Collapsed;
+                                thumbnailImage.Opacity = 1.0d;
+                            });
+                        }
                     }
+                    catch { }
                     await Task.Delay(50);
                 }
             }

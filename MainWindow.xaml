@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         xmlns:local="clr-namespace:WinYTM"
         xmlns:view="clr-namespace:WinYTM.View"
         mc:Ignorable="d"
@@ -16,6 +17,8 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+
+        <MediaElement Name="MediaPlayer" LoadedBehavior="Manual" Visibility="Collapsed" MediaFailed="MediaPlayer_MediaFailed"/>
 
         <Grid Name="DebugGrid" Grid.RowSpan="2" Panel.ZIndex="5" Visibility="Collapsed" IsHitTestVisible="False" >
             <Border Background="#4F000000" CornerRadius="6" Margin="64, 48" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -64,8 +67,6 @@
             </ui:TitleBar>
         </Grid>
 
-        <MediaElement Name="MediaPlayer" LoadedBehavior="Manual" Visibility="Collapsed" MediaEnded="MediaPlayer_MediaEnded"/>
-        
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

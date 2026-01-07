@@ -2,7 +2,7 @@
   "profiles": {
     "WinYTM": {
       "commandName": "Project",
-      "nativeDebugging": true
+      "nativeDebugging": false
     }
   }
 }
